@@ -36,28 +36,28 @@ pipeline {
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
-                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                    bat """
+                    echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
+                    """
                 }
             }
         }
 
         stage('Docker Build & Push') {
             steps {
-                sh 'docker build -t $IMAGE:$TAG .'
-                sh 'docker push $IMAGE:$TAG'
+                bat "docker build -t %IMAGE%:%TAG% ."
+                bat "docker push %IMAGE%:%TAG%"
             }
         }
 
         stage('Deploy to Azure VM') {
             steps {
                 sshagent(['deploy-ssh']) {
-                    sh """
-                    ssh -o StrictHostKeyChecking=no ${VM_USER}@${VM_HOST} '
-                        docker pull ${IMAGE}:${TAG} &&
-                        docker stop myapp || true &&
-                        docker rm myapp || true &&
-                        docker run -d --name myapp -p 80:80 ${IMAGE}:${TAG}
-                    '
+                    bat """
+                    ssh -o StrictHostKeyChecking=no %VM_USER%@%VM_HOST% "docker pull %IMAGE%:%TAG%"
+                    ssh -o StrictHostKeyChecking=no %VM_USER%@%VM_HOST% "docker stop myapp || true"
+                    ssh -o StrictHostKeyChecking=no %VM_USER%@%VM_HOST% "docker rm myapp || true"
+                    ssh -o StrictHostKeyChecking=no %VM_USER%@%VM_HOST% "docker run -d --name myapp -p 80:80 %IMAGE%:%TAG%"
                     """
                 }
             }
